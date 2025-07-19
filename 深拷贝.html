@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>浅拷贝</title>
+</head>
+<body>
+
+</body>
+<script>
+
+    /**
+     * 深拷贝概念：
+     * 1. 深拷贝是创建一个新对象，这个对象有着原始对象属性值的一份精确拷贝。
+     * 2. 如果属性是基本类型，拷贝的就是基本类型的值。
+     * 3. 如果属性是引用类型，会递归地拷贝引用类型的内容，而不是内存地址。
+     * 4. 因此，原始对象的引用类型属性改变，新对象的引用类型属性不会改变。
+     * */ 
+
+    /**
+     * 深拷贝题解：
+     * 
+     * 深拷贝的核心思想：
+     * 1. 对于基本数据类型（string、number、boolean、null、undefined），直接复制值
+     * 2. 对于引用数据类型（object、array），递归地复制其内容，而不是内存地址
+     * 
+     * 实现步骤：
+     * 1. 首先判断传入的参数是否为null或非对象类型，如果是则直接返回
+     * 2. 创建新对象（数组或普通对象）
+     * 3. 遍历原对象的所有属性，递归地复制属性值到新对象中
+     * 4. 返回新对象
+     * 
+     * 注意事项：
+     * - 使用hasOwnProperty()确保只复制对象自身的属性，不复制原型链上的属性
+     * - 对于数组和对象的处理需要区分
+     * - 深拷贝会递归地复制所有嵌套的引用类型
+     * - 需要处理循环引用的情况（避免无限递归）
+     * 
+     * 循环引用处理：
+     * - 使用WeakMap来记录已经拷贝过的对象
+     * - 如果对象已经被拷贝过，直接返回拷贝的结果
+     * - 避免无限递归导致的栈溢出
+     */
+
+    // 深拷贝方法1：基础实现（不处理循环引用）
+    function deepCopy1(obj) {
+        // 特殊处理null和基础数据类型
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        
+        // 判断是否是数组，创建对应类型的新对象
+        const newObj = Array.isArray(obj) ? [] : {};
+        
+        // 遍历对象的所有属性
+        for (let key in obj) {
+            // 只复制对象自身的属性，不复制原型链上的属性
+            if (obj.hasOwnProperty(key)) {
+                // 递归地复制属性值
+                newObj[key] = deepCopy1(obj[key]);
+            }
+        }
+        return newObj;
+    }
+
+    // 深拷贝方法2：处理循环引用的实现
+    function deepCopy2(obj, hash = new WeakMap()) {
+        // 特殊处理null和基础数据类型
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        
+        // 处理循环引用
+        if (hash.has(obj)) {
+            return hash.get(obj);
+        }
+        
+        // 判断是否是数组，创建对应类型的新对象
+        const newObj = Array.isArray(obj) ? [] : {};
+        
+        // 将新对象添加到hash表中，防止循环引用
+        hash.set(obj, newObj);
+        
+        // 遍历对象的所有属性
+        for (let key in obj) {
+            // 只复制对象自身的属性，不复制原型链上的属性
+            if (obj.hasOwnProperty(key)) {
+                // 递归地复制属性值，传递hash表
+                newObj[key] = deepCopy2(obj[key], hash);
+            }
+        }
+        return newObj;
+    }
+
+    // 深拷贝方法3：使用JSON方法（简单但有限制）
+    function deepCopy3(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+
+    // 数据源对象-测试用（包含嵌套结构）
+    const deepObj = {
+        name: '张三',           // 基本类型：字符串
+        age: 18,              // 基本类型：数字
+        friends: ['李四', '王五'], // 引用类型：数组
+        info: {               // 引用类型：对象
+            city: '北京',
+            province: '北京',
+            address: {        // 嵌套对象
+                street: '长安街',
+                number: 123
+            }
+        },
+        hobbies: [            // 嵌套数组
+            {
+                name: '读书',
+                level: '高级'
+            },
+            {
+                name: '游泳',
+                level: '中级'
+            }
+        ]
+    }
+
+    // 创建循环引用测试对象
+    const circularObj = {
+        name: '循环引用测试',
+        info: {}
+    };
+    circularObj.info.self = circularObj; // 创建循环引用
+
+    // 使用深拷贝创建新对象
+    const newDeepObj = deepCopy2(deepObj);
+
+    // 测试深拷贝的效果
+    console.log('=== 深拷贝测试 ===');
+    console.log('原始对象:', deepObj);
+    console.log('拷贝后对象:', newDeepObj);
+    console.log('');
+
+    // 修改新对象的属性，观察变化
+    console.log('=== 修改属性测试 ===');
+    
+    // 修改基本类型属性 - 不会影响原对象
+    newDeepObj.name = '张三1';
+    newDeepObj.age = 20;
+    console.log('修改基本类型后:');
+    console.log('新对象 name:', newDeepObj.name, 'age:', newDeepObj.age);
+    console.log('原对象 name:', deepObj.name, 'age:', deepObj.age);
+    console.log('');
+
+    // 修改引用类型属性 - 不会影响原对象
+    newDeepObj.friends.push('赵六');    // 修改数组
+    newDeepObj.info.city = '上海';      // 修改嵌套对象
+    newDeepObj.info.address.street = '南京路'; // 修改深层嵌套对象
+    newDeepObj.hobbies[0].level = '专家级'; // 修改嵌套数组中的对象
+    console.log('修改引用类型后:');
+    console.log('新对象 friends:', newDeepObj.friends);
+    console.log('原对象 friends:', deepObj.friends);
+    console.log('新对象 info.city:', newDeepObj.info.city);
+    console.log('原对象 info.city:', deepObj.info.city);
+    console.log('新对象 info.address.street:', newDeepObj.info.address.street);
+    console.log('原对象 info.address.street:', deepObj.info.address.street);
+    console.log('新对象 hobbies[0].level:', newDeepObj.hobbies[0].level);
+    console.log('原对象 hobbies[0].level:', deepObj.hobbies[0].level);
+    console.log('');
+
+    // 从原对象修改引用类型 - 不会影响新对象
+    deepObj.info.city = '广州';
+    deepObj.info.province = '广东';
+    deepObj.friends.push('钱七');
+    console.log('从原对象修改引用类型后:');
+    console.log('新对象 info.city:', newDeepObj.info.city);
+    console.log('原对象 info.city:', deepObj.info.city);
+    console.log('新对象 friends:', newDeepObj.friends);
+    console.log('原对象 friends:', deepObj.friends);
+    console.log('');
+
+    // 测试循环引用处理
+    console.log('=== 循环引用测试 ===');
+    try {
+        const newCircularObj = deepCopy2(circularObj);
+        console.log('循环引用处理成功:', newCircularObj.name);
+        console.log('循环引用对象:', newCircularObj.info.self === newCircularObj);
+    } catch (error) {
+        console.log('循环引用处理失败:', error.message);
+    }
+    console.log('');
+
+    // 测试JSON方法限制
+    console.log('=== JSON方法限制测试 ===');
+    const testObj = {
+        name: '测试',
+        func: function() { return 'hello'; }, // 函数
+        undef: undefined,                     // undefined
+        symbol: Symbol('test'),               // Symbol
+        date: new Date(),                     // Date对象
+        reg: /test/g                          // 正则表达式
+    };
+    
+    console.log('原始对象包含函数等:', testObj);
+    const jsonCopy = deepCopy3(testObj);
+    console.log('JSON拷贝后:', jsonCopy);
+    console.log('');
+
+    // 最终结果对比
+    console.log('=== 最终结果对比 ===');
+    console.log('新对象:', newDeepObj);
+    console.log('原对象:', deepObj);
+
+    /**
+     * 测试结果分析：
+     * 
+     * 1. 基本类型属性（name、age）：
+     *    - 修改新对象的基本类型属性不会影响原对象
+     *    - 说明基本类型是值拷贝
+     * 
+     * 2. 引用类型属性（friends、info、hobbies）：
+     *    - 修改新对象的引用类型属性不会影响原对象
+     *    - 修改原对象的引用类型属性也不会影响新对象
+     *    - 说明引用类型是内容拷贝，不是地址拷贝
+     * 
+     * 3. 嵌套结构：
+     *    - 深拷贝能够正确处理多层嵌套的对象和数组
+     *    - 每一层都是独立的拷贝
+     * 
+     * 4. 循环引用处理：
+     *    - 使用WeakMap能够正确处理循环引用
+     *    - 避免无限递归导致的栈溢出
+     * 
+     * 5. JSON方法限制：
+     *    - 无法拷贝函数、undefined、Symbol等
+     *    - Date对象会被转换为字符串
+     *    - 正则表达式会被转换为空对象
+     *    - 适合简单的数据拷贝，不适合复杂对象
+     * 
+     * 深拷贝 vs 浅拷贝：
+     * - 浅拷贝：只复制一层，嵌套的引用类型共享地址
+     * - 深拷贝：递归复制所有层，完全独立的对象
+     * - 深拷贝性能较低，但数据完全独立
+     * - 浅拷贝性能较高，但数据部分共享
+     */
+
+</script>
+</html>
