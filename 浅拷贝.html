@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>浅拷贝</title>
+</head>
+<body>
+
+</body>
+<script>
+    /**
+     * 浅拷贝概念：
+     * 1. 浅拷贝是创建一个新对象，这个对象有着原始对象属性值的一份精确拷贝。
+     * 2. 如果属性是基本类型，拷贝的就是基本类型的值。
+     * 3. 如果属性是引用类型，拷贝的就是内存地址。
+     * 4. 因此，原始对象的引用类型属性改变，新对象的引用类型属性也会改变。
+     * */ 
+
+    /**
+     * 题解：
+     * 
+     * 浅拷贝的核心思想：
+     * 1. 对于基本数据类型（string、number、boolean、null、undefined），直接复制值
+     * 2. 对于引用数据类型（object、array），复制内存地址引用
+     * 
+     * 实现步骤：
+     * 1. 首先判断传入的参数是否为null或非对象类型，如果是则直接返回
+     * 2. 创建新对象（数组或普通对象）
+     * 3. 遍历原对象的所有属性，将属性值复制到新对象中
+     * 4. 返回新对象
+     * 
+     * 注意事项：
+     * - 使用hasOwnProperty()确保只复制对象自身的属性，不复制原型链上的属性
+     * - 对于数组和对象的处理需要区分
+     * - 浅拷贝只复制一层，嵌套的引用类型仍然共享内存地址
+     * 
+     * null的特殊处理：
+     * - null在JavaScript中是一个特殊的值，typeof null返回"object"
+     * - 但null不是对象，不能进行属性遍历
+     * - 如果直接对null进行浅拷贝操作，会导致错误
+     * - 因此需要特殊判断：obj === null || typeof obj !== 'object'
+     * - 这个判断的顺序很重要：先判断null，再判断类型
+     * - 如果写成：typeof obj !== 'object' || obj === null，会有问题
+     *   因为typeof null === 'object'，null会被当作对象处理
+     */
+
+    // 浅拷贝方法1：手动实现
+    function shallowCopy1(obj) {
+        // 特殊处理null和基础数据类型
+        // 注意：typeof null === 'object'，所以必须先判断null
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        
+        // 判断是否是数组，创建对应类型的新对象
+        const newObj = Array.isArray(obj) ? [] : {};
+        
+        // 遍历对象的所有属性
+        for (let key in obj) {
+            // 只复制对象自身的属性，不复制原型链上的属性
+            if (obj.hasOwnProperty(key)) {
+                newObj[key] = obj[key]; // 直接赋值，引用类型复制的是地址
+            }
+        }
+        return newObj;
+    }
+
+    // 浅拷贝方法2：使用ES6语法糖
+    function shallowCopy2(obj) {
+        // 特殊处理null和基础数据类型
+        // 注意：typeof null === 'object'，所以必须先判断null
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        // 使用展开运算符进行浅拷贝
+        return Array.isArray(obj) ? [...obj] : {...obj};
+    }
+
+    // 数据源对象-测试用
+    const obj = {
+        name: '张三',           // 基本类型：字符串
+        age: 18,              // 基本类型：数字
+        friends: ['李四', '王五'], // 引用类型：数组
+        info: {               // 引用类型：对象
+            city: '北京',
+            province: '北京'
+        }
+    }
+
+    // 使用浅拷贝创建新对象
+    const newObj = shallowCopy1(obj);
+
+    // 测试浅拷贝的效果
+    console.log('=== 浅拷贝测试 ===');
+    console.log('原始对象:', obj);
+    console.log('拷贝后对象:', newObj);
+    console.log('');
+
+    // 修改新对象的属性，观察变化
+    console.log('=== 修改属性测试 ===');
+    
+    // 修改基本类型属性 - 不会影响原对象
+    newObj.name = '张三1';
+    newObj.age = 20;
+    console.log('修改基本类型后:');
+    console.log('新对象 name:', newObj.name, 'age:', newObj.age);
+    console.log('原对象 name:', obj.name, 'age:', obj.age);
+    console.log('');
+
+    // 修改引用类型属性 - 会影响原对象
+    newObj.friends.push('赵六');    // 修改数组
+    newObj.info.city = '上海';      // 修改嵌套对象
+    console.log('修改引用类型后:');
+    console.log('新对象 friends:', newObj.friends);
+    console.log('原对象 friends:', obj.friends);
+    console.log('新对象 info.city:', newObj.info.city);
+    console.log('原对象 info.city:', obj.info.city);
+    console.log('');
+
+    // 从原对象修改引用类型 - 也会影响新对象
+    obj.info.city = '广州';
+    obj.info.province = '广东';
+    console.log('从原对象修改引用类型后:');
+    console.log('新对象 info:', newObj.info);
+    console.log('原对象 info:', obj.info);
+    console.log('');
+
+    // 最终结果对比
+    console.log('=== 最终结果对比 ===');
+    console.log('新对象:', newObj);
+    console.log('原对象:', obj);
+
+    /**
+     * 测试结果分析：
+     * 
+     * 1. 基本类型属性（name、age）：
+     *    - 修改新对象的基本类型属性不会影响原对象
+     *    - 说明基本类型是值拷贝
+     * 
+     * 2. 引用类型属性（friends、info）：
+     *    - 修改新对象的引用类型属性会影响原对象
+     *    - 修改原对象的引用类型属性也会影响新对象
+     *    - 说明引用类型是地址拷贝
+     * 
+     * 3. 最终结果：
+     *    新对象: {name: '张三1', age: 20, friends: ['李四', '王五', '赵六'], info: {city: '广州', province: '广东'}}
+     *    原对象: {name: '张三', age: 18, friends: ['李四', '王五', '赵六'], info: {city: '广州', province: '广东'}}
+     * 
+     * 关键观察：
+     * - name和age不同：基本类型独立拷贝
+     * - friends相同：引用类型共享地址
+     * - info相同：引用类型共享地址
+     * 
+     * null的特殊性验证：
+     * - typeof null === 'object' 但 null 不是对象
+     * - 如果不对null进行特殊处理，会导致错误
+     * - 判断顺序很重要：obj === null || typeof obj !== 'object'
+     * - 不能写成：typeof obj !== 'object' || obj === null
+     */
+
+</script>
+</html>
