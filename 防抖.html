@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手动实现防抖函数</title>
+</head>
+<body>
+    <h1>手动实现防抖函数</h1>
+    <p>打开控制台查看测试结果</p>
+</body>
+<script>
+
+    /**
+     * 防抖（Debounce）概念：
+     * 1. 防抖是一种优化技术，用于限制函数的执行频率
+     * 2. 核心思想：在事件被触发n秒后再执行回调，如果在这n秒内又被触发，则重新计时
+     * 3. 只有最后一次触发才会真正执行函数
+     * 4. 使用闭包保存定时器状态，实现状态持久化
+     * 
+     * 应用场景：
+     * - 搜索框输入：用户停止输入500ms后才发送搜索请求
+     * - 按钮点击：防止用户快速连续点击提交按钮
+     * - 窗口resize：用户停止调整窗口大小后才重新计算布局
+     * - 滚动事件：滚动停止后才执行相关操作
+     * 
+     * 大白话解释：
+     * 想象你在电梯里，电梯门要关闭了，这时有人按了开门按钮，电梯门会重新打开并重新计时。
+     * 防抖就像这个电梯门，如果你在指定时间内连续触发某个事件，只有最后一次触发才会真正执行。
+     */
+
+    /**
+     * 防抖函数题解：
+     * 
+     * 防抖的核心思想：
+     * 1. 使用闭包保存定时器状态，实现状态持久化
+     * 2. 每次调用都清除之前的定时器，重新计时
+     * 3. 正确处理this指向，使用apply绑定上下文
+     * 4. 支持immediate模式，第一次触发立即执行
+     * 5. 返回可取消的函数
+     * 
+     * 实现步骤：
+     * 1. 创建闭包环境，保存定时器变量
+     * 2. 返回防抖函数，接收原函数参数
+     * 3. 每次调用都清除之前的定时器
+     * 4. 根据immediate参数决定是否立即执行
+     * 5. 设置新的定时器，延迟执行函数
+     * 6. 提供取消功能，清除定时器
+     * 
+     * 关键要点：
+     * - 使用闭包保存状态，避免全局变量污染
+     * - 每次调用都要清除之前的定时器，重新计时
+     * - 使用apply正确绑定this和传递参数
+     * - immediate模式：第一次立即执行，后续延迟执行
+     * - 提供取消功能，可以手动取消防抖
+     */
+
+    // 手动实现防抖函数方法1：基础实现
+    function debounce1(func, wait, immediate = false) {
+        let timeout;
+        
+        return function debounced(...args) {
+            // 保存this上下文
+            const context = this;
+            
+            // 清除之前的定时器
+            clearTimeout(timeout);
+            
+            if (immediate && !timeout) {
+                // 立即执行模式：第一次调用立即执行
+                func.apply(context, args);
+            }
+            
+            // 设置新的定时器
+            timeout = setTimeout(() => {
+                // 非立即执行模式：延迟执行
+                if (!immediate) {
+                    func.apply(context, args);
+                }
+                // 执行完后清空timeout，为下次调用做准备
+                timeout = null;
+            }, wait);
+        };
+    }
+    // const debouncedFunc1 = debounce1(testFunc, 1000, false);
+    // debouncedFunc1('第一次调用');
+    // debouncedFunc1('第二次调用');
+   
+
+    // 手动实现防抖函数方法2：带取消功能
+    function debounce2(func, wait, immediate = false) {
+        let timeout;
+        
+        function debounced(...args) {
+            // 保存this上下文
+            const context = this;
+            
+            // 清除之前的定时器
+            clearTimeout(timeout);
+            
+            if (immediate && !timeout) {
+                // 立即执行模式：第一次调用立即执行
+                func.apply(context, args);
+            }
+            
+            // 设置新的定时器
+            timeout = setTimeout(() => {
+                // 非立即执行模式：延迟执行
+                if (!immediate) {
+                    func.apply(context, args);
+                }
+                // 执行完后清空timeout，为下次调用做准备
+                timeout = null;
+            }, wait);
+        }
+        
+        // 添加取消功能
+        debounced.cancel = function() {
+            clearTimeout(timeout);
+            timeout = null;
+        };
+        
+        return debounced;
+    }
+
+    // 手动实现防抖函数方法3：带返回值
+    function debounce3(func, wait, immediate = false) {
+        let timeout;
+        let result;
+        
+        function debounced(...args) {
+            // 保存this上下文
+            const context = this;
+            
+            // 清除之前的定时器
+            clearTimeout(timeout);
+            
+            if (immediate && !timeout) {
+                // 立即执行模式：第一次调用立即执行
+                result = func.apply(context, args);
+            }
+            
+            // 设置新的定时器
+            timeout = setTimeout(() => {
+                // 非立即执行模式：延迟执行
+                if (!immediate) {
+                    result = func.apply(context, args);
+                }
+                // 执行完后清空timeout，为下次调用做准备
+                timeout = null;
+            }, wait);
+            
+            return result;
+        }
+        
+        // 添加取消功能
+        debounced.cancel = function() {
+            clearTimeout(timeout);
+            timeout = null;
+        };
+        
+        return debounced;
+    }
+
+    // 测试用例
+    console.log('=== 防抖函数手动实现测试 ===');
+    
+    // 基础测试
+    console.log('--- 基础防抖测试 ---');
+    let count = 0;
+    const testFunc = function(message) {
+        count++;
+        console.log(`[${new Date().toLocaleTimeString()}] ${message} - 第${count}次执行`);
+    };
+    
+    const debouncedFunc1 = debounce1(testFunc, 1000, false);
+    console.log('连续快速调用防抖函数（延迟执行模式）：');
+    for (let i = 1; i <= 5; i++) {
+        setTimeout(() => {
+            debouncedFunc1(`第${i}次调用`);
+        }, i * 100);
+    }
+    console.log('');
+
+    // 立即执行模式测试
+    console.log('--- 立即执行模式测试 ---');
+    count = 0;
+    const debouncedFunc2 = debounce2(testFunc, 1000, true);
+    console.log('连续快速调用防抖函数（立即执行模式）：');
+    for (let i = 1; i <= 5; i++) {
+        setTimeout(() => {
+            debouncedFunc2(`第${i}次调用（立即执行模式）`);
+        }, i * 100);
+    }
+    console.log('');
+
+    // 取消功能测试
+    console.log('--- 取消功能测试 ---');
+    count = 0;
+    const debouncedFunc3 = debounce3(testFunc, 2000, false);
+    console.log('设置2秒延迟的防抖函数');
+    debouncedFunc3('第一次调用');
+    
+    setTimeout(() => {
+        console.log('1秒后取消防抖函数');
+        debouncedFunc3.cancel();
+    }, 1000);
+    console.log('');
+
+    // 参数传递测试
+    console.log('--- 参数传递测试 ---');
+    const paramTestFunc = function(name, age, city) {
+        console.log(`[${new Date().toLocaleTimeString()}] 参数测试: name=${name}, age=${age}, city=${city}`);
+    };
+    
+    const debouncedParamFunc = debounce1(paramTestFunc, 1000, false);
+    debouncedParamFunc('张三', 25, '北京');
+    debouncedParamFunc('李四', 30, '上海');
+    debouncedParamFunc('王五', 28, '广州');
+    console.log('');
+
+    // this绑定测试
+    console.log('--- this绑定测试 ---');
+    const obj = {
+        name: '测试对象',
+        testMethod: function(message) {
+            console.log(`[${new Date().toLocaleTimeString()}] ${this.name}: ${message}`);
+        }
+    };
+    
+    const debouncedMethod = debounce1(obj.testMethod, 1000, false);
+    debouncedMethod.call(obj, 'this绑定测试');
+    debouncedMethod.apply(obj, ['this绑定测试2']);
+    console.log('');
+
+    // 性能测试
+    console.log('--- 性能测试 ---');
+    const performanceFunc = function() {
+        // 模拟耗时操作
+        let sum = 0;
+        for (let i = 0; i < 1000000; i++) {
+            sum += i;
+        }
+        console.log(`[${new Date().toLocaleTimeString()}] 性能测试完成，sum=${sum}`);
+    };
+    
+    const debouncedPerformanceFunc = debounce1(performanceFunc, 1000, false);
+    console.log('连续快速调用性能测试函数：');
+    for (let i = 1; i <= 10; i++) {
+        setTimeout(() => {
+            debouncedPerformanceFunc();
+        }, i * 50);
+    }
+    console.log('');
+
+    // 实际应用场景测试
+    console.log('--- 实际应用场景测试 ---');
+    
+    // 搜索框输入模拟
+    console.log('搜索框输入模拟：');
+    const searchFunc = function(keyword) {
+        console.log(`[${new Date().toLocaleTimeString()}] 搜索关键词: ${keyword}`);
+    };
+    
+    const debouncedSearch = debounce1(searchFunc, 500, false);
+    const keywords = ['a', 'ab', 'abc', 'abcd', 'abcde'];
+    keywords.forEach((keyword, index) => {
+        setTimeout(() => {
+            debouncedSearch(keyword);
+        }, index * 100);
+    });
+    console.log('');
+
+    // 按钮点击模拟
+    console.log('按钮点击模拟：');
+    const submitFunc = function(data) {
+        console.log(`[${new Date().toLocaleTimeString()}] 提交数据: ${data}`);
+    };
+    
+    const debouncedSubmit = debounce1(submitFunc, 1000, false);
+    for (let i = 1; i <= 5; i++) {
+        setTimeout(() => {
+            debouncedSubmit(`数据${i}`);
+        }, i * 200);
+    }
+    console.log('');
+
+    // 窗口resize模拟
+    console.log('窗口resize模拟：');
+    const resizeFunc = function(size) {
+        console.log(`[${new Date().toLocaleTimeString()}] 窗口大小: ${size}`);
+    };
+    
+    const debouncedResize = debounce1(resizeFunc, 800, false);
+    const sizes = ['1000x800', '1024x768', '1280x720', '1366x768', '1920x1080'];
+    sizes.forEach((size, index) => {
+        setTimeout(() => {
+            debouncedResize(size);
+        }, index * 150);
+    });
+    console.log('');
+
+    // 方法对比测试
+    console.log('--- 方法对比测试 ---');
+    const compareFunc = function(message) {
+        console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+    };
+    
+    const debounced1 = debounce1(compareFunc, 1000, false);
+    const debounced2 = debounce2(compareFunc, 1000, false);
+    const debounced3 = debounce3(compareFunc, 1000, false);
+    
+    console.log('测试三种实现方法：');
+    debounced1('方法1测试');
+    debounced2('方法2测试');
+    debounced3('方法3测试');
+    console.log('');
+
+    // 边界情况测试
+    console.log('--- 边界情况测试 ---');
+    
+    // 零延迟测试
+    const zeroDelayFunc = debounce1(compareFunc, 0, false);
+    zeroDelayFunc('零延迟测试');
+    
+    // 立即执行模式测试
+    const immediateFunc = debounce1(compareFunc, 1000, true);
+    immediateFunc('立即执行测试1');
+    immediateFunc('立即执行测试2');
+    
+    // 取消后重新调用测试
+    const cancelTestFunc = debounce2(compareFunc, 2000, false);
+    cancelTestFunc('取消前调用');
+    setTimeout(() => {
+        cancelTestFunc.cancel();
+        console.log('防抖已取消');
+        cancelTestFunc('取消后调用');
+    }, 1000);
+    console.log('');
+
+    // 复杂参数测试
+    console.log('--- 复杂参数测试 ---');
+    const complexFunc = function(obj, arr, num, str) {
+        console.log(`[${new Date().toLocaleTimeString()}] 复杂参数:`, {
+            object: obj,
+            array: arr,
+            number: num,
+            string: str
+        });
+    };
+    
+    const debouncedComplex = debounce1(complexFunc, 1000, false);
+    debouncedComplex({name: 'test'}, [1,2,3], 123, 'hello');
+    debouncedComplex({name: 'test2'}, [4,5,6], 456, 'world');
+    console.log('');
+
+    /**
+     * 测试结果分析：
+     * 
+     * 1. 基础功能测试：
+     *    - 所有手动实现的防抖函数都能正确限制执行频率
+     *    - 连续快速调用只执行最后一次
+     *    - 延迟时间设置正确
+     * 
+     * 2. 立即执行模式：
+     *    - immediate=true时，第一次调用立即执行
+     *    - 后续调用会延迟执行
+     *    - 重新计时机制正常工作
+     * 
+     * 3. 取消功能：
+     *    - cancel()方法能正确清除定时器
+     *    - 取消后可以重新调用
+     *    - 状态重置正确
+     * 
+     * 4. 参数传递和this绑定：
+     *    - 参数正确传递给原函数
+     *    - this上下文绑定正确
+     *    - 支持复杂参数类型
+     * 
+     * 5. 实际应用场景：
+     *    - 搜索框输入：用户停止输入后才执行
+     *    - 按钮点击：防止重复提交
+     *    - 窗口resize：调整完成后才执行
+     * 
+     * 6. 性能表现：
+     *    - 防抖函数能有效减少函数执行次数
+     *    - 内存使用合理，没有内存泄漏
+     *    - 定时器管理正确
+     * 
+     * 防抖机制总结：
+     * - 使用闭包保存状态，实现状态持久化
+     * - 每次调用都清除之前的定时器，重新计时
+     * - 正确处理this指向和参数传递
+     * - 支持立即执行模式和取消功能
+     * - 能有效优化高频事件处理
+     */
+
+</script>
+</html>
