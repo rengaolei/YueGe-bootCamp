@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手动实现节流</title>
+</head>
+<body>
+    <h1>手动实现节流</h1>
+    <p>打开控制台查看测试结果</p>
+</body>
+<script>
+
+    /**
+     * 什么是节流？
+     * 
+     * 简单理解：就像游戏技能有冷却时间，无论你按多少次技能键，技能只会按固定时间间隔释放
+     * 
+     * 举个例子：
+     * - 你疯狂点击按钮，但按钮每秒最多只能执行1次
+     * - 你快速滚动页面，但滚动事件每200ms最多只触发1次
+     * 
+     * 节流 VS 防抖：
+     * - 防抖：等你停下来再执行（像电梯门，有人按就重新计时）
+     * - 节流：按固定频率执行（像技能CD，到时间就能用）
+     */
+
+    /**
+     * 节流的应用场景：
+     * 1. 页面滚动 - 滚动时不断触发，但我们只需要每隔一段时间检查一次位置
+     * 2. 鼠标移动 - 鼠标移动频率很高，但更新UI不需要那么频繁
+     * 3. 窗口缩放 - 拖拽窗口时会不断触发resize，但重新计算布局不需要那么频繁
+     * 4. 按钮点击 - 防止用户疯狂点击提交按钮
+     */
+
+    // ========== 方法1：最简单的节流实现 ==========
+    
+    /**
+     * 简单版节流函数
+     * @param {Function} func - 要节流的函数
+     * @param {number} delay - 时间间隔（毫秒）
+     */
+    function simpleThrottle(func, delay) {
+        let lastTime = 0; // 记录上次执行时间
+        let result; // 保存函数返回值
+        
+        return function(...args) {
+            const now = Date.now(); // 当前时间
+            
+            // 如果距离上次执行时间超过了设定的间隔，就执行函数
+            if (now - lastTime >= delay) {
+                lastTime = now; // 更新执行时间
+                result = func.apply(this, args); // 执行原函数并保存返回值
+            }
+            return result; // 返回最近一次的执行结果
+        };
+    }
+    // 上边这个函数的调用方法
+    const throttledFunc = simpleThrottle(function() {
+        console.log('节流函数1');
+    }, 1000);
+    
+    console.log('=== 简单节流测试 ===');
+    console.log('连续调用3次，但只执行1次（因为间隔是1000ms）：');
+    throttledFunc(); // 第1次调用 - 立即执行
+    throttledFunc(); // 第2次调用 - 被节流，不执行
+    throttledFunc(); // 第3次调用 - 被节流，不执行
+    
+    // 演示1秒后再次调用
+    setTimeout(() => {
+        console.log('1秒后再次调用：');
+        throttledFunc(); // 这次会执行，因为距离上次执行已经超过1000ms
+    }, 1000);
+    
+    // 演示更频繁的调用
+    console.log('\n=== 频繁调用演示 ===');
+    const frequentThrottle = simpleThrottle(function(msg) {
+        console.log(`执行: ${msg}`);
+    }, 500); // 500ms间隔
+    
+    console.log('每100ms调用一次，持续1秒：');
+    for (let i = 1; i <= 10; i++) {
+        setTimeout(() => {
+            frequentThrottle(`第${i}次调用`);
+        }, i * 100);
+    }
+    
+    // ========== 方法2：完整版节流实现 ==========
+    
+    /**
+     * 完整版节流函数 - 支持所有要求
+     * @param {Function} func - 要节流的函数
+     * @param {number} delay - 时间间隔（毫秒）
+     * @param {Object} options - 配置选项
+     * @param {boolean} options.leading - 是否立即执行第一次（默认true）
+     * @param {boolean} options.trailing - 是否在间隔结束后执行最后一次（默认true）
+     */
+    function throttle(func, delay, options = {}) {
+        // 设置默认选项
+        const { leading = true, trailing = true } = options;
+        
+        let timer = null;        // 定时器
+        let lastTime = 0;       // 上次执行时间
+        let lastArgs = null;    // 最后一次调用的参数
+        let lastThis = null;    // 最后一次调用的this
+        let result;             // 函数返回值
+        
+        // 延迟执行函数（用于trailing模式）
+        function runLater() {
+            lastTime = leading === false ? 0 : Date.now();
+            timer = null;
+            if (lastArgs) {
+                result = func.apply(lastThis, lastArgs);
+                lastArgs = null;
+                lastThis = null;
+            }
+        }
+        
+        return function(...args) {
+            const now = Date.now();
+            
+            // 如果是第一次调用且不需要立即执行，记录当前时间
+            if (!lastTime && leading === false) {
+                lastTime = now;
+            }
+            
+            // 计算还需要等待多长时间
+            const remaining = delay - (now - lastTime);
+            
+            if (remaining <= 0 || remaining > delay) {
+                // 时间到了，立即执行
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                lastTime = now;
+                result = func.apply(this, args); // 保存返回值
+            } else if (!timer && trailing) {
+                // 还没到时间，但需要在间隔结束后执行最后一次
+                lastArgs = args;
+                lastThis = this;
+                timer = setTimeout(runLater, remaining);
+            }
+            
+            return result; // 始终返回最近一次的执行结果
+        };
+    }
+    // 调用上述函数，验证options参数
+    const throttledFunc2 = throttle(function() {
+        console.log('节流函数2');
+    }, 1000, { leading: false, trailing: false });
+    throttledFunc2();
+    throttledFunc2();
+
+    // ========== 实际应用示例 ==========
+    
+    setTimeout(() => {
+        console.log('\n=== 实际应用示例 ===');
+        
+        // 1. 搜索框输入节流
+        const searchThrottle = throttle((keyword) => {
+            console.log(`🔍 搜索: ${keyword}`);
+            // 模拟搜索结果
+            return `找到${Math.floor(Math.random() * 100)}个结果`;
+        }, 300);
+        
+        // 2. 窗口大小调整节流
+        const resizeThrottle = throttle((width, height) => {
+            console.log(`📐 窗口调整: ${width}x${height}`);
+            // 模拟布局重新计算
+            return `布局已更新`;
+        }, 250);
+        
+        // 3. 鼠标移动节流
+        const mouseMoveThrottle = throttle((x, y) => {
+            console.log(`🖱️ 鼠标位置: (${x}, ${y})`);
+            // 模拟鼠标跟随效果
+            return `位置已更新`;
+        }, 16); // 约60fps
+        
+        // 4. 滚动事件节流
+        const scrollThrottle = throttle((scrollTop) => {
+            console.log(`📜 滚动位置: ${scrollTop}px`);
+            // 模拟懒加载检查
+            return scrollTop > 500 ? '触发懒加载' : '继续滚动';
+        }, 100);
+        
+        console.log('以上是常见的节流应用场景，都支持返回值');
+        
+        // 演示返回值功能
+        console.log('\n演示返回值功能：');
+        const searchResult = searchThrottle('JavaScript');
+        console.log(`搜索结果: ${searchResult}`);
+        
+        const resizeResult = resizeThrottle(1920, 1080);
+        console.log(`调整结果: ${resizeResult}`);
+        
+    }, 8000);
+
+    // ========== 工具函数 ==========
+    
+    /**
+     * 创建一个带取消功能的节流函数
+     */
+    function createCancelableThrottle(func, delay) {
+        let timer = null;
+        let lastTime = 0;
+        let result;
+        
+        function throttled(...args) {
+            const now = Date.now();
+            if (now - lastTime >= delay) {
+                lastTime = now;
+                result = func.apply(this, args);
+            }
+            return result;
+        }
+        
+        // 添加取消方法
+        throttled.cancel = function() {
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+            lastTime = 0;
+            result = undefined;
+        };
+        
+        return throttled;
+    }
+</script>
+</html>
