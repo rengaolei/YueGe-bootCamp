@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手动实现 instanceof</title>
+</head>
+<body>
+    <h1>手动实现 instanceof 操作符</h1>
+</body>
+<script>
+
+    /**
+     * instanceof 概念：
+     * 1. instanceof 操作符用于检测构造函数的 prototype 属性是否出现在某个实例对象的原型链上
+     * 2. 它会沿着对象的原型链向上查找，直到找到匹配的原型或到达原型链顶端
+     * 3. 如果找到匹配的原型则返回 true，否则返回 false
+     * 4. 原型链的查找会一直到 Object.prototype.__proto__ (null) 为止
+     */
+
+    /**
+     * instanceof 题解：
+     * 
+     * instanceof 的核心思想：
+     * 1. 获取构造函数的 prototype 属性和对象的原型链
+     * 2. 沿着对象的原型链向上查找
+     * 3. 比较每一层原型是否与构造函数的 prototype 相等
+     * 4. 找到匹配返回 true，到达原型链顶端返回 false
+     * 
+     * 实现步骤：
+     * 1. 首先判断传入的参数是否有效（对象不能为 null/undefined，构造函数必须为函数）
+     * 2. 获取构造函数的 prototype 属性
+     * 3. 获取对象的原型链（使用 Object.getPrototypeOf()）
+     * 4. 沿着原型链向上查找，比较每一层原型
+     * 5. 如果找到匹配返回 true，如果到达原型链顶端（null）返回 false
+     * 
+     * 注意事项：
+     * - 使用 Object.getPrototypeOf() 而不是 __proto__ 属性（更标准）
+     * - 需要处理 null、undefined 等边界情况
+     * - 构造函数必须是函数类型
+     * - 原型链查找会一直进行到 Object.prototype.__proto__ (null)
+     * 
+     * 关键要点：
+     * - instanceof 检查的是原型链上是否存在构造函数的 prototype
+     * - 原型链的查找是逐层向上的
+     * - 需要正确处理边界情况和类型检查
+     */
+
+    // 手动实现 instanceof 方法1：基础实现
+    function myInstanceof1(obj, constructor) {
+        // 边界处理，如果obj为null或undefined，返回false
+        if (obj === null || obj === undefined) {
+            return false;
+        }
+        // 如果constructor不是函数，抛出错误
+        if (typeof constructor !== 'function') {
+            throw new TypeError('Right-hand side of instanceof is not callable');
+        }
+        // 获取构造函数的prototype
+        const prototype = constructor.prototype;
+        // 获取对象的原型链
+        let currentProto = Object.getPrototypeOf(obj);
+
+        // 沿着原型链向上查找
+        while(currentProto !== null) {
+            if (currentProto === prototype) {
+                // 如果找到匹配的原型，返回true
+                return true;
+            }
+            currentProto = Object.getPrototypeOf(currentProto);
+        }
+        // 如果到达原型链顶端，返回false
+        return false;
+    }
+
+    
+
+</script>
+</html>

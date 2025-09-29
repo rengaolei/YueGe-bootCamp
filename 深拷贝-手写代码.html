@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深拷贝-手写代码</title>
+</head>
+<body>
+    <script>
+        // 深拷贝概念：
+        // 1. 深拷贝是创建一个新对象，这个对象有着原始对象属性值的一份精确拷贝。
+        // 2. 如果属性是基本类型，拷贝的就是基本类型的值。
+        // 3. 如果属性是引用类型，会递归地拷贝引用类型的内容，而不是内存地址。
+        // 4. 因此，原始对象的引用类型属性改变，新对象的引用类型属性不会改变。
+
+        // 深拷贝的实现方式手写代码：
+        // 1. 递归地复制所有嵌套的引用类型
+     
+        // 深拷贝的实现步骤：
+        // 1. 首先判断传入的参数是否为null或非对象类型，如果是则直接返回
+        // 2. 创建新对象（数组或普通对象）
+        // 3. 遍历原对象的所有属性，递归地复制属性值到新对象中
+        // 4. 返回新对象
+
+        // 深拷贝的注意事项：
+        // 1. 使用hasOwnProperty()确保只复制对象自身的属性，不复制原型链上的属性
+        // 2. 对于数组和对象的处理需要区分
+        // 3. 深拷贝会递归地复制所有嵌套的引用类型
+        // 4. 需要处理循环引用的情况（避免无限递归）
+
+        function deepCopy(obj , hash = new WeakMap()) {
+            // 1. 首先判断传入的参数是否基础类型，如果是则直接返回
+            // 这里需要单独判断null,因为 typeof null === 'object'
+            if (obj === null || typeof obj !== 'object') {
+                return obj;
+            }
+
+            // 2. 创建新对象（数组或普通对象）
+            // 判断是对象还是数组，然后创建对应类型的新对象
+            let newObj = Array.isArray(obj) ? [] : {};
+
+
+            // 额外处理循环引用，避免无限递归
+            if (hash.has(obj)) {
+                return hash.get(obj);
+            }
+            hash.set(obj, newObj);
+
+            // 3. 遍历原对象所有属性，递归地复制属性值到新对象中
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    newObj[key] = deepCopy(obj[key], hash)
+                }
+            }
+            // 4. 返回新对象
+            return newObj;
+        }
+
+
+        // 测试
+        let obj = {
+            name: '张三1',
+            age: 18,
+            friends: ['李四', '王五', '赵六'],
+            info: {
+                city: '北京',
+                province: '北京',
+                address: {
+                    street: '长安街',
+                    number: 123
+                }
+            },
+            hobbies: [
+                {
+                    name: '读书',
+                    level: '高级'
+                }
+            ]
+        }
+        let newObj = deepCopy(obj);
+        console.log(newObj);
+
+    </script>
+</body>
+</html>
