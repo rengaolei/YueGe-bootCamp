@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手动实现防抖</title>
+</head>
+<body>
+    <h1>手动实现防抖函数</h1>
+</body>
+<script>
+
+    /**
+     * 防抖概念：
+     * 1. 防抖（Debounce）是一种限制函数执行频率的技术
+     * 2. 在事件被触发n秒后再执行回调，如果在这n秒内又被触发，则重新计时
+     * 3. 防抖的核心思想是：在连续触发的事件中，只执行最后一次
+     * 4. 常用于搜索框输入、按钮点击、窗口resize等场景
+     */
+
+    /**
+     * 防抖题解：
+     * 
+     * 防抖的核心思想：
+     * 1. 创建一个闭包函数，用于保存定时器ID
+     * 2. 返回一个新函数，这个函数会清除之前的定时器
+     * 3. 设置新的定时器，延迟执行原函数
+     * 4. 如果在延迟时间内再次调用，会重新计时
+     * 5. 支持立即执行、取消、刷新等高级功能
+     * 
+     * 实现步骤：
+     * 1. 声明定时器变量，用于存储定时器ID
+     * 2. 返回防抖函数，使用...args收集所有传入的参数
+     * 3. 保存this上下文，确保在setTimeout回调中this不丢失
+     * 4. 清除之前的定时器，避免重复执行
+     * 5. 根据immediate参数决定是否立即执行
+     * 6. 设置新的定时器，延迟执行原函数
+     * 
+     * 注意事项：
+     * - 使用apply确保this正确传递，args作为参数数组传递
+     * - 需要处理立即执行的情况（immediate参数）
+     * - 定时器ID的管理很重要，避免内存泄漏
+     * - 支持多参数传递，使用...args语法
+     * 
+     * 关键要点：
+     * - 防抖的核心是延迟执行和重新计时
+     * - 闭包用于保存定时器状态
+     * - this上下文和参数传递的正确处理
+     * - 支持立即执行的高级功能
+     */
+
+    // 手动实现防抖方法1：基础实现
+    function debounce1(func, delay) {
+        // 声明定时器变量
+        let timeoutId;
+        
+        // 返回防抖函数
+        return function(...args) {
+            // 保存this上下文
+            const context = this;
+            
+            // 清除之前的定时器
+            clearTimeout(timeoutId);
+            
+            // 设置新的定时器
+            timeoutId = setTimeout(() => {
+                func.apply(context, args);
+            }, delay);
+        };
+    }
+
+    // 手动实现防抖方法2：支持立即执行
+    function debounce2(func, delay, immediate = false) {
+        // 声明定时器变量
+        let timeoutId;
+        
+        // 返回防抖函数
+        return function(...args) {
+            // 保存this上下文
+            const context = this;
+            
+            // 清除之前的定时器
+            clearTimeout(timeoutId);
+            
+            // 判断是否立即执行
+            if (immediate) {
+                // 如果还没有执行过，立即执行
+                const callNow = !timeoutId;
+                timeoutId = setTimeout(() => {
+                    timeoutId = null;
+                }, delay);
+                
+                if (callNow) {
+                    func.apply(context, args);
+                }
+            } else {
+                // 设置新的定时器
+                timeoutId = setTimeout(() => {
+                    func.apply(context, args);
+                }, delay);
+            }
+        };
+    }
+
+    // 测试用例
+    function search(query) {
+        console.log('执行搜索:', query);
+    }
+
+    const searchObj = {
+        name: '搜索器',
+        search: function(query) {
+            console.log(`${this.name} 执行搜索: ${query}`);
+        }
+    };
+
+    // 创建防抖搜索函数
+    const debouncedSearch = debounce1(search, 300);
+    const debouncedObjSearch = debounce1(searchObj.search, 300);
+    const immediateDebouncedSearch = debounce2(search, 300, true);
+
+    // 测试1：连续快速输入
+    console.log('测试1：连续快速输入');
+    debouncedSearch('a');
+    debouncedSearch('ab');
+    debouncedSearch('abc');
+    debouncedSearch('abcd');
+    // 预期：只输出最后一次 '执行搜索: abcd'
+
+    // 测试2：this 上下文测试
+    console.log('测试2：this 上下文测试');
+    debouncedObjSearch.call(searchObj, 'JavaScript');
+    debouncedObjSearch.call(searchObj, 'React');
+    // 预期：输出 '搜索器 执行搜索: React'
+
+    // 测试3：立即执行防抖
+    console.log('测试3：立即执行防抖');
+    immediateDebouncedSearch('立即执行');
+    immediateDebouncedSearch('第二次');
+    immediateDebouncedSearch('第三次');
+    // 预期：立即输出 '执行搜索: 立即执行'，然后延迟后输出 '执行搜索: 第三次'
+
+</script>
+</html>

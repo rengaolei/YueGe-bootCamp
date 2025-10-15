@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手动实现节流</title>
+</head>
+<body>
+    <h1>手动实现节流函数</h1>
+</body>
+<script>
+
+    /**
+     * 节流概念：
+     * 1. 节流（Throttle）是一种限制函数执行频率的技术
+     * 2. 在指定时间间隔内，无论事件触发多少次，函数只执行一次
+     * 3. 节流的核心思想是：在连续触发的事件中，按固定频率执行
+     * 4. 常用于滚动事件、鼠标移动、按钮点击等需要限制频率的场景
+     */
+
+    /**
+     * 节流题解：
+     * 
+     * 节流的核心思想：
+     * 1. 创建一个闭包函数，用于保存上次执行时间
+     * 2. 返回一个新函数，这个函数会检查时间间隔
+     * 3. 只有在指定时间间隔后才执行原函数
+     * 4. 如果在时间间隔内再次调用，直接忽略
+     * 5. 支持立即执行、取消、刷新等高级功能
+     * 
+     * 实现步骤：
+     * 1. 声明时间戳变量，用于存储上次执行时间
+     * 2. 返回节流函数，使用...args收集所有传入的参数
+     * 3. 保存this上下文，确保在setTimeout回调中this不丢失
+     * 4. 检查当前时间与上次执行时间的间隔
+     * 5. 根据immediate参数决定是否立即执行
+     * 6. 设置定时器，确保在时间间隔后可以再次执行
+     * 
+     * 注意事项：
+     * - 使用apply确保this正确传递，args作为参数数组传递
+     * - 需要处理立即执行的情况（immediate参数）
+     * - 时间戳的管理很重要，避免重复执行
+     * - 支持多参数传递，使用...args语法
+     * 
+     * 关键要点：
+     * - 节流的核心是固定频率执行
+     * - 闭包用于保存执行时间状态
+     * - this上下文和参数传递的正确处理
+     * - 支持立即执行的高级功能
+     */
+
+    // 手动实现节流方法1：基础实现
+    function throttle1(func, delay) {
+        // 声明上次执行时间变量
+        let lastExecTime = 0;
+        
+        // 返回节流函数
+        return function(...args) {
+            // 保存this上下文
+            const context = this;
+            
+            // 获取当前时间
+            const currentTime = Date.now();
+            
+            // 检查是否到了执行时间
+            if (currentTime - lastExecTime >= delay) {
+                // 更新上次执行时间
+                lastExecTime = currentTime;
+                // 执行原函数
+                func.apply(context, args);
+            }
+        };
+    }
+
+    // 手动实现节流方法2：支持立即执行
+    function throttle2(func, delay, immediate = true) {
+        // 声明上次执行时间变量
+        let lastExecTime = 0;
+        // 声明定时器变量
+        let timeoutId;
+        
+        // 返回节流函数
+        return function(...args) {
+            // 保存this上下文
+            const context = this;
+            
+            // 获取当前时间
+            const currentTime = Date.now();
+            
+            // 清除之前的定时器
+            clearTimeout(timeoutId);
+            
+            // 判断是否立即执行
+            if (immediate) {
+                // 检查是否到了执行时间
+                if (currentTime - lastExecTime >= delay) {
+                    // 更新上次执行时间
+                    lastExecTime = currentTime;
+                    // 执行原函数
+                    func.apply(context, args);
+                }
+            } else {
+                // 设置定时器，确保在时间间隔后可以再次执行
+                timeoutId = setTimeout(() => {
+                    lastExecTime = Date.now();
+                    func.apply(context, args);
+                }, delay - (currentTime - lastExecTime));
+            }
+        };
+    }
+
+    // 测试用例
+    function scrollHandler(scrollTop) {
+        console.log('处理滚动:', scrollTop);
+    }
+
+    const scrollObj = {
+        name: '滚动处理器',
+        handleScroll: function(scrollTop) {
+            console.log(`${this.name} 处理滚动: ${scrollTop}`);
+        }
+    };
+
+    // 创建节流滚动处理函数
+    const throttledScroll = throttle1(scrollHandler, 300);
+    const throttledObjScroll = throttle1(scrollObj.handleScroll, 300);
+    const immediateThrottledScroll = throttle2(scrollHandler, 300, true);
+
+    // 测试1：连续快速滚动
+    console.log('测试1：连续快速滚动');
+    throttledScroll(100);
+    throttledScroll(200);
+    throttledScroll(300);
+    throttledScroll(400);
+    // 预期：只输出第一次 '处理滚动: 100'
+
+    // 测试2：this 上下文测试
+    console.log('测试2：this 上下文测试');
+    throttledObjScroll.call(scrollObj, 500);
+    throttledObjScroll.call(scrollObj, 600);
+    // 预期：只输出第一次 '滚动处理器 处理滚动: 500'
+
+    // 测试3：立即执行节流
+    console.log('测试3：立即执行节流');
+    immediateThrottledScroll(700);
+    immediateThrottledScroll(800);
+    immediateThrottledScroll(900);
+    // 预期：只输出第一次 '处理滚动: 700'
+
+</script>
+</html>
